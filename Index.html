@@ -1,0 +1,2681 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nutriment · Tracker Personal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700;9..144,900&family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1410;
+    --bg-2: #161c18;
+    --surface: #1c2420;
+    --surface-2: #242e28;
+    --border: #2e3a33;
+    --border-soft: #243029;
+    --ink: #f0ebe0;
+    --ink-2: #c5c0b5;
+    --ink-3: #8a8578;
+    --accent: #d4ed4a;
+    --accent-2: #a8d119;
+    --warn: #f59e0b;
+    --danger: #ef4444;
+    --good: #84cc16;
+    --shadow: 0 20px 60px -10px rgba(0,0,0,.6);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Manrope', -apple-system, sans-serif;
+    font-feature-settings: "ss01", "cv02";
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    line-height: 1.5;
+  }
+
+  body {
+    background:
+      radial-gradient(circle at 20% 10%, rgba(212, 237, 74, 0.06), transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(132, 204, 22, 0.04), transparent 60%),
+      var(--bg);
+  }
+
+  .container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 32px 24px 100px;
+  }
+
+  /* HEADER */
+  header.app-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding-bottom: 28px;
+    border-bottom: 1px solid var(--border-soft);
+    margin-bottom: 32px;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .brand h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 300;
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    letter-spacing: -0.04em;
+    line-height: 0.95;
+  }
+  .brand h1 em {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--accent);
+  }
+  .brand p {
+    color: var(--ink-3);
+    font-size: 0.875rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-top: 8px;
+    font-weight: 500;
+  }
+
+  /* DATE & TARGET INDICATORS */
+  .today-strip {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .date-pill {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 10px 16px;
+    border-radius: 100px;
+    font-size: 0.8125rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--ink-2);
+  }
+
+  /* TABS */
+  nav.tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 4px;
+    margin-bottom: 28px;
+    width: fit-content;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+  .tab {
+    background: transparent;
+    border: none;
+    color: var(--ink-3);
+    padding: 11px 22px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.875rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .tab:hover { color: var(--ink-2); }
+  .tab.active {
+    background: var(--accent);
+    color: var(--bg);
+  }
+
+  /* SECTIONS */
+  section.view { display: none; }
+  section.view.active { display: block; animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  /* DASHBOARD */
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  @media (max-width: 900px) {
+    .dashboard-grid { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 600px) {
+    .dashboard-grid { grid-template-columns: 1fr; }
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border-soft);
+    border-radius: 18px;
+    padding: 22px 22px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card .label {
+    font-size: 0.75rem;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .stat-card .value {
+    font-family: 'Fraunces', serif;
+    font-size: 2.5rem;
+    font-weight: 400;
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+  .stat-card .value .unit {
+    font-size: 0.875rem;
+    color: var(--ink-3);
+    font-family: 'Manrope', sans-serif;
+    font-weight: 500;
+    margin-left: 4px;
+  }
+  .stat-card .target {
+    margin-top: 6px;
+    font-size: 0.8125rem;
+    color: var(--ink-3);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .stat-card .progress {
+    margin-top: 14px;
+    height: 6px;
+    background: var(--bg-2);
+    border-radius: 100px;
+    overflow: hidden;
+  }
+  .stat-card .progress > div {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 100px;
+    transition: width 0.4s ease;
+  }
+  .stat-card.over .progress > div { background: var(--warn); }
+  .stat-card.danger .progress > div { background: var(--danger); }
+
+  /* PANEL */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border-soft);
+    border-radius: 18px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .panel h2 {
+    font-family: 'Fraunces', serif;
+    font-weight: 400;
+    font-size: 1.75rem;
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+  }
+  .panel h2 em { font-style: italic; color: var(--accent); }
+  .panel .sub {
+    color: var(--ink-3);
+    font-size: 0.875rem;
+    margin-bottom: 20px;
+  }
+
+  /* BUTTONS */
+  .btn {
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    padding: 11px 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.875rem;
+    font-weight: 700;
+    letter-spacing: -0.005em;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn:hover { background: var(--accent-2); transform: translateY(-1px); }
+  .btn.ghost {
+    background: transparent;
+    color: var(--ink-2);
+    border: 1px solid var(--border);
+  }
+  .btn.ghost:hover { background: var(--surface-2); color: var(--ink); }
+  .btn.small { padding: 7px 12px; font-size: 0.8125rem; }
+  .btn.danger { background: transparent; color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); }
+  .btn.danger:hover { background: rgba(239, 68, 68, 0.1); }
+
+  /* INPUTS */
+  input[type="text"], input[type="number"], select, textarea {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    color: var(--ink);
+    padding: 11px 14px;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 0.9375rem;
+    width: 100%;
+    transition: border-color 0.15s;
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  /* TABLE */
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    text-align: left;
+    padding: 12px 14px;
+    color: var(--ink-3);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 14px;
+    border-bottom: 1px solid var(--border-soft);
+    font-size: 0.9375rem;
+  }
+  tr:last-child td { border-bottom: none; }
+  td.num, th.num { font-family: 'JetBrains Mono', monospace; text-align: right; font-size: 0.875rem; }
+  td.actions { text-align: right; }
+  tbody tr { transition: background 0.15s; }
+  tbody tr:hover { background: var(--bg-2); }
+
+  /* INGREDIENT BUILDER */
+  .builder-grid {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 20px;
+  }
+  @media (max-width: 1000px) {
+    .builder-grid { grid-template-columns: 1fr; }
+  }
+
+  .search-box { position: relative; margin-bottom: 14px; }
+  .search-box input { padding-left: 38px; }
+  .search-box::before {
+    content: "⌕";
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--ink-3);
+    font-size: 1.125rem;
+  }
+
+  .ing-list {
+    max-height: 460px;
+    overflow-y: auto;
+    border: 1px solid var(--border-soft);
+    border-radius: 12px;
+    background: var(--bg-2);
+  }
+  .ing-list::-webkit-scrollbar { width: 8px; }
+  .ing-list::-webkit-scrollbar-track { background: transparent; }
+  .ing-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .ing-item {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-soft);
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 0.15s;
+  }
+  .ing-item:hover { background: var(--surface-2); }
+  .ing-item:last-child { border-bottom: none; }
+  .ing-name { font-weight: 500; font-size: 0.9375rem; }
+  .ing-cat {
+    font-size: 0.6875rem;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 2px;
+  }
+  .ing-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--ink-3);
+    text-align: right;
+  }
+  .ing-meta strong { color: var(--accent); }
+
+  .selected-list {
+    background: var(--bg-2);
+    border: 1px solid var(--border-soft);
+    border-radius: 12px;
+    padding: 14px;
+    min-height: 200px;
+  }
+  .selected-empty {
+    color: var(--ink-3);
+    font-size: 0.875rem;
+    text-align: center;
+    padding: 40px 20px;
+    font-style: italic;
+  }
+  .sel-item {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .sel-item:last-child { border-bottom: none; }
+  .sel-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    gap: 12px;
+  }
+  .sel-name { font-weight: 600; font-size: 0.875rem; flex: 1; }
+  .sel-remove {
+    background: transparent;
+    border: none;
+    color: var(--ink-3);
+    cursor: pointer;
+    font-size: 1.125rem;
+    line-height: 1;
+    padding: 2px 6px;
+    border-radius: 6px;
+  }
+  .sel-remove:hover { color: var(--danger); background: rgba(239, 68, 68, 0.1); }
+  .sel-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .sel-controls input[type="number"] {
+    width: 90px;
+    padding: 6px 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8125rem;
+  }
+  .sel-unit { font-size: 0.75rem; color: var(--ink-3); font-family: 'JetBrains Mono', monospace; }
+  .sel-stats {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--ink-2);
+    margin-left: auto;
+  }
+  .sel-stats span { color: var(--accent); }
+
+  /* TOTAL DISPLAY */
+  .recipe-totals {
+    background: linear-gradient(135deg, var(--surface-2), var(--surface));
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    margin-top: 16px;
+  }
+  .totals-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+  @media (max-width: 500px) {
+    .totals-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  .total-cell {
+    padding: 10px;
+    background: var(--bg-2);
+    border-radius: 8px;
+    text-align: center;
+  }
+  .total-cell .lbl {
+    font-size: 0.6875rem;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+  }
+  .total-cell .val {
+    font-family: 'Fraunces', serif;
+    font-size: 1.5rem;
+    font-weight: 400;
+    color: var(--ink);
+    margin-top: 4px;
+  }
+  .total-cell .val .u {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.6875rem;
+    color: var(--ink-3);
+    font-weight: 500;
+  }
+
+  /* RECIPE CARDS */
+  .recipe-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+    gap: 16px;
+  }
+  .recipe-card {
+    background: var(--bg-2);
+    border: 1px solid var(--border-soft);
+    border-radius: 14px;
+    padding: 18px;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+  .recipe-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+  .recipe-card h3 {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 1.125rem;
+    margin-bottom: 8px;
+    letter-spacing: -0.01em;
+  }
+  .recipe-card .meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--ink-3);
+    margin-bottom: 12px;
+  }
+  .recipe-card .nums {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .recipe-card .num {
+    font-size: 0.8125rem;
+  }
+  .recipe-card .num .n {
+    color: var(--accent);
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* FAVORITES */
+  .fav-star {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 1.25rem;
+    color: var(--ink-3);
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: all 0.15s;
+    line-height: 1;
+  }
+  .fav-star:hover { background: var(--surface-2); transform: scale(1.1); }
+  .fav-star.active { color: var(--accent); text-shadow: 0 0 12px rgba(212, 237, 74, 0.5); }
+
+  .recipe-card .card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .recipe-card .card-head h3 { margin-bottom: 0; flex: 1; }
+
+  .filter-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .chip {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    color: var(--ink-2);
+    padding: 7px 14px;
+    border-radius: 100px;
+    cursor: pointer;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    transition: all 0.15s;
+  }
+  .chip:hover { color: var(--ink); border-color: var(--border); }
+  .chip.active {
+    background: var(--accent);
+    color: var(--bg);
+    border-color: var(--accent);
+  }
+
+  /* COPY DAY UI */
+  .copy-source-list {
+    max-height: 320px;
+    overflow-y: auto;
+    border: 1px solid var(--border-soft);
+    border-radius: 12px;
+    background: var(--bg-2);
+    margin-top: 10px;
+  }
+  .copy-day-item {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border-soft);
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    transition: background 0.15s;
+  }
+  .copy-day-item:last-child { border-bottom: none; }
+  .copy-day-item:hover { background: var(--surface-2); }
+  .copy-day-item.selected {
+    background: rgba(212, 237, 74, 0.08);
+    border-left: 3px solid var(--accent);
+  }
+  .copy-day-date {
+    font-weight: 600;
+    font-size: 0.9375rem;
+  }
+  .copy-day-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--ink-3);
+    margin-top: 3px;
+  }
+  .copy-day-stats {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--accent);
+    text-align: right;
+  }
+  .copy-mode-toggle {
+    display: flex;
+    gap: 6px;
+    background: var(--bg-2);
+    border: 1px solid var(--border-soft);
+    border-radius: 10px;
+    padding: 4px;
+    margin: 14px 0 6px;
+    width: fit-content;
+  }
+  .copy-mode-toggle button {
+    background: transparent;
+    border: none;
+    color: var(--ink-3);
+    padding: 7px 14px;
+    border-radius: 7px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    transition: all 0.15s;
+  }
+  .copy-mode-toggle button.active {
+    background: var(--surface-2);
+    color: var(--ink);
+  }
+
+  /* JOURNAL */
+  .journal-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  .date-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .date-nav input {
+    width: 170px;
+    font-family: 'JetBrains Mono', monospace;
+    text-align: center;
+  }
+
+  .meal-section {
+    background: var(--bg-2);
+    border: 1px solid var(--border-soft);
+    border-radius: 14px;
+    margin-bottom: 14px;
+    overflow: hidden;
+  }
+  .meal-head {
+    padding: 14px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--surface-2);
+  }
+  .meal-head h3 {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 1.0625rem;
+    letter-spacing: -0.01em;
+  }
+  .meal-head .meal-totals {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--ink-3);
+  }
+  .meal-head .meal-totals span { color: var(--accent); }
+  .meal-body { padding: 8px 0; }
+  .meal-empty {
+    padding: 22px;
+    text-align: center;
+    color: var(--ink-3);
+    font-size: 0.8125rem;
+    font-style: italic;
+  }
+  .log-item {
+    padding: 10px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .log-item:last-child { border-bottom: none; }
+  .log-name { font-size: 0.875rem; flex: 1; }
+  .log-name .qty { color: var(--ink-3); font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; }
+  .log-nums {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--ink-2);
+    display: flex;
+    gap: 12px;
+  }
+  .log-nums b { color: var(--accent); font-weight: 600; }
+
+  /* SCANNER */
+  .scanner-container {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 14px 0;
+    position: relative;
+  }
+  #scannerView { width: 100%; min-height: 280px; }
+  #scannerView video { width: 100% !important; height: auto !important; border-radius: 12px; }
+  .scanner-hint {
+    text-align: center;
+    color: var(--ink-3);
+    font-size: 0.8125rem;
+    padding: 14px;
+    font-style: italic;
+  }
+  .scanner-result {
+    background: linear-gradient(135deg, var(--surface-2), var(--bg-2));
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 14px;
+  }
+  .scanner-result h3 {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 1.125rem;
+    margin-bottom: 4px;
+  }
+  .scanner-result .brand-line {
+    color: var(--ink-3);
+    font-size: 0.8125rem;
+    font-family: 'JetBrains Mono', monospace;
+    margin-bottom: 10px;
+  }
+  .scanner-result .nut-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .scanner-result .nut-cell {
+    background: var(--bg-2);
+    border-radius: 8px;
+    padding: 8px;
+    text-align: center;
+  }
+  .scanner-result .nut-lbl {
+    font-size: 0.625rem;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+  }
+  .scanner-result .nut-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9375rem;
+    color: var(--accent);
+    font-weight: 600;
+    margin-top: 2px;
+  }
+  .scanner-state {
+    padding: 14px;
+    text-align: center;
+    color: var(--ink-2);
+    font-size: 0.875rem;
+  }
+  .scanner-state.error { color: var(--danger); }
+  .scanner-state.success { color: var(--good); }
+
+  /* JOURNAL DAY TOTALS */
+  .journal-totals {
+    background: linear-gradient(135deg, var(--surface-2), var(--bg-2));
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 20px;
+    margin-bottom: 18px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+  @media (max-width: 500px) {
+    .journal-totals { grid-template-columns: 1fr; gap: 10px; padding: 14px; }
+  }
+  .jt-cell {
+    text-align: center;
+    padding: 4px 8px;
+    position: relative;
+  }
+  .jt-cell + .jt-cell::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 12%;
+    bottom: 12%;
+    width: 1px;
+    background: var(--border-soft);
+  }
+  @media (max-width: 500px) {
+    .jt-cell + .jt-cell::before { display: none; }
+  }
+  .jt-label {
+    font-size: 0.6875rem;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .jt-value {
+    font-family: 'Fraunces', serif;
+    font-size: 1.875rem;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    color: var(--ink);
+  }
+  .jt-value .u {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.75rem;
+    color: var(--ink-3);
+    font-weight: 500;
+    margin-left: 2px;
+  }
+  .jt-target {
+    font-size: 0.6875rem;
+    color: var(--ink-3);
+    font-family: 'JetBrains Mono', monospace;
+    margin-top: 5px;
+  }
+  .jt-bar {
+    margin-top: 8px;
+    height: 4px;
+    background: var(--bg);
+    border-radius: 100px;
+    overflow: hidden;
+  }
+  .jt-bar > div {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 100px;
+    transition: width 0.4s ease;
+  }
+  .jt-cell.over .jt-bar > div { background: var(--warn); }
+  .jt-cell.danger .jt-bar > div { background: var(--danger); }
+
+  /* MODAL */
+  .modal-bg {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.65);
+    backdrop-filter: blur(6px);
+    z-index: 100;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-bg.show { display: flex; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 28px;
+    max-width: 600px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal h2 {
+    font-family: 'Fraunces', serif;
+    font-weight: 400;
+    font-size: 1.75rem;
+    margin-bottom: 4px;
+    letter-spacing: -0.02em;
+  }
+  .modal .sub { color: var(--ink-3); font-size: 0.875rem; margin-bottom: 22px; }
+  .modal-form { display: grid; gap: 14px; }
+  .modal-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 22px;
+  }
+
+  /* OBIECTIVE INPUT */
+  .targets-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 14px; }
+  @media (max-width: 700px) { .targets-grid { grid-template-columns: 1fr 1fr; } }
+
+  /* HELPER */
+  .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .row-space { justify-content: space-between; }
+  .mt-md { margin-top: 16px; }
+  .mt-lg { margin-top: 24px; }
+  .gap-sm { gap: 8px; }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--accent);
+    color: var(--bg);
+    padding: 12px 22px;
+    border-radius: 100px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    transition: transform 0.3s;
+    z-index: 200;
+    box-shadow: var(--shadow);
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header class="app-header">
+    <div class="brand">
+      <h1>Nutri<em>ment</em></h1>
+      <p>Tracker personal · GI · GL · macro</p>
+    </div>
+    <div class="today-strip">
+      <div class="date-pill" id="todayPill">—</div>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-view="dashboard">Astăzi</button>
+    <button class="tab" data-view="journal">Jurnal</button>
+    <button class="tab" data-view="builder">Constructor rețete</button>
+    <button class="tab" data-view="recipes">Rețete salvate</button>
+    <button class="tab" data-view="ingredients">Alimente</button>
+    <button class="tab" data-view="settings">Obiective</button>
+  </nav>
+
+  <!-- ============ DASHBOARD ============ -->
+  <section class="view active" id="view-dashboard">
+    <div class="dashboard-grid">
+      <div class="stat-card" id="card-kcal">
+        <div class="label">Calorii</div>
+        <div class="value" id="d-kcal">0<span class="unit">kcal</span></div>
+        <div class="target" id="d-kcal-target">/ 0</div>
+        <div class="progress"><div id="d-kcal-bar" style="width:0%"></div></div>
+      </div>
+      <div class="stat-card" id="card-prot">
+        <div class="label">Proteine</div>
+        <div class="value" id="d-prot">0<span class="unit">g</span></div>
+        <div class="target" id="d-prot-target">/ 0g</div>
+        <div class="progress"><div id="d-prot-bar" style="width:0%"></div></div>
+      </div>
+      <div class="stat-card" id="card-carbs">
+        <div class="label">Carbohidrați</div>
+        <div class="value" id="d-carbs">0<span class="unit">g</span></div>
+        <div class="target" id="d-carbs-target">/ 0g</div>
+        <div class="progress"><div id="d-carbs-bar" style="width:0%"></div></div>
+      </div>
+      <div class="stat-card" id="card-gl">
+        <div class="label">GL total</div>
+        <div class="value" id="d-gl">0</div>
+        <div class="target" id="d-gl-target">target ≤ 0</div>
+        <div class="progress"><div id="d-gl-bar" style="width:0%"></div></div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Grăsimi</div>
+        <div class="value" id="d-fat">0<span class="unit">g</span></div>
+        <div class="target">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">GI mediu ponderat</div>
+        <div class="value" id="d-gi">0</div>
+        <div class="target" id="d-gi-cat">—</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="row row-space">
+        <div>
+          <h2>Mese de <em>azi</em></h2>
+          <div class="sub">Toate mesele înregistrate pentru ziua curentă</div>
+        </div>
+        <button class="btn" onclick="switchView('journal')">+ Adaugă în jurnal</button>
+      </div>
+      <div id="todayMeals"></div>
+    </div>
+  </section>
+
+  <!-- ============ JOURNAL ============ -->
+  <section class="view" id="view-journal">
+    <div class="panel">
+      <div class="journal-head">
+        <div>
+          <h2>Jurnal <em>zilnic</em></h2>
+          <div class="sub">Înregistrează ce mănânci pe parcursul zilei</div>
+        </div>
+        <div class="date-nav">
+          <button class="btn ghost small" onclick="changeDate(-1)">‹</button>
+          <input type="date" id="journalDate">
+          <button class="btn ghost small" onclick="changeDate(1)">›</button>
+        </div>
+      </div>
+
+      <div id="journalContent"></div>
+
+      <div class="row gap-sm mt-lg">
+        <button class="btn" onclick="openLogModal('mic_dejun')">+ Mic Dejun</button>
+        <button class="btn ghost" onclick="openLogModal('pranz')">+ Prânz</button>
+        <button class="btn ghost" onclick="openLogModal('cina')">+ Cină</button>
+        <button class="btn ghost" onclick="openLogModal('gustare')">+ Gustare</button>
+        <button class="btn ghost" onclick="openCopyDayModal()" style="margin-left:auto;">⎘ Copiază dintr-o altă zi</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ BUILDER ============ -->
+  <section class="view" id="view-builder">
+    <div class="panel">
+      <h2>Constructor de <em>rețete</em></h2>
+      <div class="sub">Alege alimente, setează gramajul, salvează rețeta</div>
+
+      <div class="row mt-md" style="margin-bottom: 18px;">
+        <input type="text" id="recipeName" placeholder="Nume rețetă (ex: Salată de Halloumi cu Tzatziki)" style="flex:1; min-width:240px;">
+        <select id="recipeMealType" style="width: 160px;">
+          <option value="mic_dejun">Mic Dejun</option>
+          <option value="pranz">Prânz</option>
+          <option value="cina">Cină</option>
+          <option value="gustare">Gustare</option>
+        </select>
+      </div>
+
+      <div class="builder-grid">
+        <div>
+          <label>Caută aliment</label>
+          <div class="search-box">
+            <input type="text" id="builderSearch" placeholder="Tastează pentru a filtra...">
+          </div>
+          <div class="ing-list" id="builderIngList"></div>
+        </div>
+        <div>
+          <label>Compoziție rețetă</label>
+          <div class="selected-list" id="selectedList">
+            <div class="selected-empty">Apasă pe alimente din stânga ca să le adaugi</div>
+          </div>
+          <div class="recipe-totals">
+            <div class="totals-grid">
+              <div class="total-cell"><div class="lbl">Kcal</div><div class="val" id="b-kcal">0</div></div>
+              <div class="total-cell"><div class="lbl">Proteine</div><div class="val" id="b-prot">0<span class="u">g</span></div></div>
+              <div class="total-cell"><div class="lbl">Carbi</div><div class="val" id="b-carbs">0<span class="u">g</span></div></div>
+              <div class="total-cell"><div class="lbl">GL</div><div class="val" id="b-gl">0</div></div>
+            </div>
+            <div class="row gap-sm mt-md">
+              <button class="btn" onclick="saveRecipe()">Salvează rețeta</button>
+              <button class="btn ghost" onclick="clearBuilder()">Golește</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ RECIPES ============ -->
+  <section class="view" id="view-recipes">
+    <div class="panel">
+      <h2>Rețete <em>salvate</em></h2>
+      <div class="sub">Apasă pe steluță pentru a marca favorite. Filtrează după tip de masă sau favorite.</div>
+      <div class="filter-bar mt-md">
+        <button class="chip active" data-filter="all" onclick="setRecipeFilter('all')">Toate</button>
+        <button class="chip" data-filter="fav" onclick="setRecipeFilter('fav')">★ Favorite</button>
+        <button class="chip" data-filter="mic_dejun" onclick="setRecipeFilter('mic_dejun')">Mic Dejun</button>
+        <button class="chip" data-filter="pranz" onclick="setRecipeFilter('pranz')">Prânz</button>
+        <button class="chip" data-filter="cina" onclick="setRecipeFilter('cina')">Cină</button>
+        <button class="chip" data-filter="gustare" onclick="setRecipeFilter('gustare')">Gustare</button>
+      </div>
+      <div class="recipe-grid" id="recipesGrid"></div>
+    </div>
+  </section>
+
+  <!-- ============ INGREDIENTS ============ -->
+  <section class="view" id="view-ingredients">
+    <div class="panel">
+      <div class="row row-space" style="margin-bottom: 16px;">
+        <div>
+          <h2>Baza de <em>alimente</em></h2>
+          <div class="sub">Valori nutriționale per 100g</div>
+        </div>
+        <div class="row gap-sm">
+          <button class="btn ghost" onclick="openScannerModal()">📷 Scanează cod de bare</button>
+          <button class="btn ghost" onclick="document.getElementById('eatTrackFile').click()">📥 Import Eat &amp; Track</button>
+          <input type="file" id="eatTrackFile" accept=".xlsx,.xls" style="display:none" onchange="handleEatTrackImport(event)">
+          <button class="btn" onclick="openIngModal()">+ Aliment nou</button>
+        </div>
+      </div>
+      <div class="search-box">
+        <input type="text" id="ingSearch" placeholder="Caută aliment...">
+      </div>
+      <div style="overflow-x:auto; margin-top: 14px;">
+        <table>
+          <thead>
+            <tr>
+              <th>Aliment</th>
+              <th>Categorie</th>
+              <th class="num">Kcal</th>
+              <th class="num">Prot (g)</th>
+              <th class="num">Carbi (g)</th>
+              <th class="num">Grăs (g)</th>
+              <th class="num">GI</th>
+              <th class="num">GL/100g</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="ingTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SETTINGS / TARGETS ============ -->
+  <section class="view" id="view-settings">
+    <div class="panel">
+      <h2>Obiective <em>zilnice</em></h2>
+      <div class="sub">Setează targetele pentru calorii, macros și GL</div>
+
+      <div class="targets-grid mt-md">
+        <div>
+          <label>Calorii (kcal)</label>
+          <input type="number" id="tgt-kcal" min="0">
+        </div>
+        <div>
+          <label>Proteine (g)</label>
+          <input type="number" id="tgt-prot" min="0">
+        </div>
+        <div>
+          <label>Carbohidrați (g)</label>
+          <input type="number" id="tgt-carbs" min="0">
+        </div>
+        <div>
+          <label>GL maxim</label>
+          <input type="number" id="tgt-gl" min="0">
+        </div>
+      </div>
+
+      <div class="row mt-lg">
+        <button class="btn" onclick="saveTargets()">Salvează obiective</button>
+        <button class="btn ghost" onclick="exportData()">Export date</button>
+        <button class="btn ghost" onclick="document.getElementById('importFile').click()">Import date</button>
+        <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+        <button class="btn danger" onclick="resetAll()">Resetează tot</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ============ MODAL: EAT & TRACK IMPORT ============ -->
+<div class="modal-bg" id="eatTrackModal">
+  <div class="modal" style="max-width: 720px;">
+    <h2>Import din <em>Eat &amp; Track</em></h2>
+    <div class="sub" id="eatTrackSub">Procesare fișier...</div>
+
+    <div id="eatTrackStats" style="display:none; background: var(--bg-2); border:1px solid var(--border-soft); border-radius:10px; padding:14px; margin-bottom:14px;">
+      <div class="row gap-sm" style="font-size:0.875rem; flex-wrap:wrap;">
+        <div><span style="color:var(--ink-3);">Alimente unice găsite:</span> <strong id="etCountUnique">0</strong></div>
+        <div><span style="color:var(--ink-3);">·</span></div>
+        <div><span style="color:var(--ink-3);">Deja în baza ta:</span> <strong id="etCountExisting">0</strong></div>
+        <div><span style="color:var(--ink-3);">·</span></div>
+        <div><span style="color:var(--ink-3);">Noi de importat:</span> <strong style="color:var(--accent);" id="etCountNew">0</strong></div>
+      </div>
+    </div>
+
+    <div id="eatTrackPreview" style="max-height:380px; overflow-y:auto; border:1px solid var(--border-soft); border-radius:10px; background:var(--bg-2); display:none;">
+    </div>
+
+    <div id="eatTrackError" style="display:none; background: rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); color:#fca5a5; padding:12px; border-radius:10px; margin-top:14px; font-size:0.875rem;"></div>
+
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeEatTrackModal()">Anulează</button>
+      <button class="btn" id="etImportBtn" onclick="confirmEatTrackImport()" style="display:none;">Importă toate alimentele noi</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: BARCODE SCANNER ============ -->
+<div class="modal-bg" id="scannerModal">
+  <div class="modal" style="max-width: 540px;">
+    <h2>Scanează <em>cod de bare</em></h2>
+    <div class="sub">Apropie produsul de cameră. Vom căuta în baza de date Open Food Facts (3M+ produse).</div>
+
+    <div id="scannerHttpsWarn" style="display:none; background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); color: #fbbf24; padding: 12px 14px; border-radius: 10px; margin-bottom: 14px; font-size: 0.8125rem;">
+      ⚠️ <strong>Camera nu poate fi accesată din fișier local.</strong> Pentru a folosi scannerul, deschide aplicația printr-un link HTTPS (ex: GitHub Pages). Vezi instrucțiunile.
+    </div>
+
+    <div class="scanner-container">
+      <div id="scannerView"></div>
+      <div class="scanner-hint" id="scannerHint">Inițializare cameră...</div>
+    </div>
+
+    <div style="margin: 14px 0 6px;">
+      <label>Sau introdu codul de bare manual</label>
+      <div class="row gap-sm">
+        <input type="text" id="manualBarcode" placeholder="ex: 5941234567890" style="flex:1;" inputmode="numeric">
+        <button class="btn small" onclick="lookupBarcode(document.getElementById('manualBarcode').value)">Caută</button>
+      </div>
+    </div>
+
+    <div id="scannerResult"></div>
+
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeScannerModal()">Închide</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: COPY DAY ============ -->
+<div class="modal-bg" id="copyDayModal">
+  <div class="modal">
+    <h2>Copiază <em>dintr-o altă zi</em></h2>
+    <div class="sub">Alege ziua sursă și ce vrei să copiezi. Datele vor fi adăugate la <strong id="copyTargetDate">—</strong>.</div>
+
+    <div class="copy-mode-toggle">
+      <button id="copyModeFull" class="active" onclick="setCopyMode('full')">Întreaga zi</button>
+      <button id="copyModeMeal" onclick="setCopyMode('meal')">Doar o masă</button>
+    </div>
+
+    <div id="copyMealSelector" style="display:none; margin-top:10px;">
+      <label>Ce masă copiezi?</label>
+      <select id="copyMealType">
+        <option value="mic_dejun">Mic Dejun</option>
+        <option value="pranz">Prânz</option>
+        <option value="cina">Cină</option>
+        <option value="gustare">Gustare</option>
+      </select>
+    </div>
+
+    <div style="margin-top:14px;">
+      <label>Zi sursă (sortate de la cea mai recentă)</label>
+      <div class="copy-source-list" id="copySourceList"></div>
+    </div>
+
+    <div style="margin-top:14px;">
+      <label style="display:flex; align-items:center; gap:8px; text-transform:none; letter-spacing:normal; color:var(--ink-2); font-size:0.875rem; cursor:pointer; font-weight:500;">
+        <input type="checkbox" id="copyReplaceMode" style="width:auto;">
+        Înlocuiește mesele existente (altfel: adaugă peste)
+      </label>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeCopyDayModal()">Anulează</button>
+      <button class="btn" onclick="confirmCopyDay()">Copiază</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: LOG MEAL ============ -->
+<div class="modal-bg" id="logModal">
+  <div class="modal">
+    <h2>Adaugă în <em id="logMealLabel">masă</em></h2>
+    <div class="sub">Alege o rețetă salvată sau adaugă alimente individual</div>
+
+    <div class="modal-form">
+      <div>
+        <label>Alege rețetă salvată</label>
+        <select id="logRecipeSelect">
+          <option value="">— sau adaugă alimente individual mai jos —</option>
+        </select>
+      </div>
+      <div style="border-top: 1px solid var(--border-soft); padding-top: 14px;">
+        <label>Sau aliment individual</label>
+        <div class="modal-form-row">
+          <select id="logIngSelect">
+            <option value="">Alege aliment...</option>
+          </select>
+          <div class="row gap-sm">
+            <input type="number" id="logIngQty" placeholder="cantitate" step="1" min="0">
+            <span class="sel-unit" style="white-space:nowrap;">g/ml</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeLogModal()">Anulează</button>
+      <button class="btn" onclick="confirmLog()">Adaugă</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: NEW INGREDIENT ============ -->
+<div class="modal-bg" id="ingModal">
+  <div class="modal">
+    <h2>Aliment <em>nou</em></h2>
+    <div class="sub">Valori per 100g</div>
+
+    <div class="modal-form">
+      <div>
+        <label>Nume</label>
+        <input type="text" id="ni-name">
+      </div>
+      <div class="modal-form-row">
+        <div><label>Categorie</label><input type="text" id="ni-cat" placeholder="ex: Legume"></div>
+        <div><label>Kcal</label><input type="number" id="ni-kcal" min="0" step="0.1"></div>
+      </div>
+      <div class="modal-form-row">
+        <div><label>Proteine (g)</label><input type="number" id="ni-prot" min="0" step="0.1"></div>
+        <div><label>Carbohidrați (g)</label><input type="number" id="ni-carbs" min="0" step="0.1"></div>
+      </div>
+      <div class="modal-form-row">
+        <div><label>Grăsimi (g)</label><input type="number" id="ni-fat" min="0" step="0.1"></div>
+        <div><label>GI (indice glicemic)</label><input type="number" id="ni-gi" min="0" max="120"></div>
+      </div>
+      <div>
+        <label>GL per 100g (sarcină glicemică)</label>
+        <input type="number" id="ni-gl" min="0" step="0.1" placeholder="≈ (carbi × GI) / 100">
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeIngModal()">Anulează</button>
+      <button class="btn" onclick="saveNewIng()">Salvează</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============ STATE & STORAGE ============
+const STORAGE_KEY = 'nutriment_app_v1';
+
+const DEFAULT_INGREDIENTS = [
+  { id: 'imp_soy',     name: 'Impact Soy Protein (izolat)',    cat: 'Suplimente',         kcal: 373, prot: 90.0, carbs: 0.5,  fat: 1.0,  gi: 15, gl100: 0.1 },
+  { id: 'iaurt_gr',    name: 'Iaurt grecesc 2%',                cat: 'Lactate',            kcal: 60,  prot: 9.0,  carbs: 3.6,  fat: 2.0,  gi: 11, gl100: 0.4 },
+  { id: 'lapte_soia',  name: 'Lapte de soia Yutto',             cat: 'Lactate',            kcal: 33,  prot: 3.3,  carbs: 0.0,  fat: 1.8,  gi: 30, gl100: 0.0 },
+  { id: 'parenica',    name: 'Brânză Parenica afumată',         cat: 'Lactate',            kcal: 310, prot: 25.0, carbs: 1.0,  fat: 22.0, gi: 0,  gl100: 0.0 },
+  { id: 'halloumi',    name: 'Brânză Halloumi',                 cat: 'Lactate',            kcal: 321, prot: 22.0, carbs: 2.2,  fat: 25.0, gi: 0,  gl100: 0.0 },
+  { id: 'feta',        name: 'Brânză Feta Miil',                cat: 'Lactate',            kcal: 265, prot: 14.0, carbs: 4.1,  fat: 21.0, gi: 0,  gl100: 0.0 },
+  { id: 'naut',        name: 'Năut conservă (scurs)',           cat: 'Conserve',           kcal: 139, prot: 7.4,  carbs: 16.2, fat: 2.6,  gi: 28, gl100: 4.5 },
+  { id: 'fasole_alba', name: 'Fasole albă conservă (scursă)',   cat: 'Conserve',           kcal: 113, prot: 7.0,  carbs: 15.6, fat: 0.8,  gi: 31, gl100: 4.8 },
+  { id: 'fructe_pad',  name: 'Fructe de pădure congelate',      cat: 'Congelate',          kcal: 50,  prot: 0.7,  carbs: 11.0, fat: 0.3,  gi: 40, gl100: 4.4 },
+  { id: 'conopida',    name: 'Conopidă congelată',              cat: 'Congelate',          kcal: 25,  prot: 1.9,  carbs: 3.0,  fat: 0.3,  gi: 15, gl100: 0.5 },
+  { id: 'pastai',      name: 'Păstăi galbene congelate',        cat: 'Congelate',          kcal: 31,  prot: 1.8,  carbs: 6.2,  fat: 0.2,  gi: 15, gl100: 0.9 },
+  { id: 'nuggets',     name: 'Verdino Nuggets',                 cat: 'Vegan procesate',    kcal: 200, prot: 16.0, carbs: 9.0,  fat: 10.0, gi: 30, gl100: 2.7 },
+  { id: 'burger',      name: 'Verdino Burger Crocant',          cat: 'Vegan procesate',    kcal: 230, prot: 14.0, carbs: 12.0, fat: 12.0, gi: 35, gl100: 4.2 },
+  { id: 'vinete',      name: 'Vinete coapte (miez)',            cat: 'Legume',             kcal: 35,  prot: 0.8,  carbs: 8.6,  fat: 0.2,  gi: 20, gl100: 1.7 },
+  { id: 'ciuperci',    name: 'Ciuperci champignon',             cat: 'Legume',             kcal: 22,  prot: 3.1,  carbs: 3.3,  fat: 0.3,  gi: 15, gl100: 0.5 },
+  { id: 'ardei',       name: 'Ardei gras roșu',                 cat: 'Legume',             kcal: 31,  prot: 1.0,  carbs: 6.0,  fat: 0.3,  gi: 15, gl100: 0.9 },
+  { id: 'salata',      name: 'Salată verde',                    cat: 'Legume',             kcal: 15,  prot: 1.4,  carbs: 2.9,  fat: 0.2,  gi: 15, gl100: 0.4 },
+  { id: 'castravete',  name: 'Castravete',                      cat: 'Legume',             kcal: 16,  prot: 0.7,  carbs: 3.6,  fat: 0.1,  gi: 15, gl100: 0.5 },
+  { id: 'rosii_ch',    name: 'Roșii cherry',                    cat: 'Legume',             kcal: 18,  prot: 0.9,  carbs: 3.9,  fat: 0.2,  gi: 15, gl100: 0.6 },
+  { id: 'rosii',       name: 'Roșii normale',                   cat: 'Legume',             kcal: 18,  prot: 0.9,  carbs: 3.9,  fat: 0.2,  gi: 15, gl100: 0.6 },
+  { id: 'ridichi',     name: 'Ridichi',                         cat: 'Legume',             kcal: 16,  prot: 0.7,  carbs: 3.4,  fat: 0.1,  gi: 15, gl100: 0.5 },
+  { id: 'ceapa_v',     name: 'Ceapă verde',                     cat: 'Legume',             kcal: 32,  prot: 1.8,  carbs: 7.3,  fat: 0.2,  gi: 15, gl100: 1.1 },
+  { id: 'usturoi',     name: 'Usturoi proaspăt',                cat: 'Legume',             kcal: 149, prot: 6.4,  carbs: 33.0, fat: 0.5,  gi: 30, gl100: 9.9 },
+  { id: 'marar',       name: 'Mărar proaspăt',                  cat: 'Verdețuri',          kcal: 43,  prot: 3.5,  carbs: 7.0,  fat: 1.1,  gi: 15, gl100: 1.0 },
+  { id: 'lamaie',      name: 'Suc de lămâie',                   cat: 'Condimente',         kcal: 22,  prot: 0.4,  carbs: 6.9,  fat: 0.2,  gi: 20, gl100: 1.4 },
+  { id: 'ust_gran',    name: 'Usturoi granulat',                cat: 'Condimente uscate',  kcal: 331, prot: 16.6, carbs: 73.0, fat: 0.7,  gi: 30, gl100: 21.9 },
+  { id: 'scorti',      name: 'Scorțișoară măcinată',            cat: 'Condimente uscate',  kcal: 247, prot: 4.0,  carbs: 81.0, fat: 1.2,  gi: 5,  gl100: 4.0 },
+  { id: 'boia_af',     name: 'Boia afumată',                    cat: 'Condimente uscate',  kcal: 282, prot: 14.0, carbs: 54.0, fat: 13.0, gi: 5,  gl100: 2.7 },
+];
+
+const DEFAULT_TARGETS = { kcal: 1500, prot: 110, carbs: 130, gl: 25 };
+
+let state = {
+  ingredients: [],
+  recipes: [],
+  log: {},  // { 'YYYY-MM-DD': { mic_dejun: [], pranz: [], cina: [], gustare: [] } }
+  targets: { ...DEFAULT_TARGETS },
+  builder: [],  // { ingId, qty }
+};
+
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+function load() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (raw) {
+    try {
+      state = JSON.parse(raw);
+      if (!state.ingredients || state.ingredients.length === 0) state.ingredients = [...DEFAULT_INGREDIENTS];
+      if (!state.targets) state.targets = { ...DEFAULT_TARGETS };
+      if (!state.log) state.log = {};
+      if (!state.recipes) state.recipes = [];
+      if (!state.builder) state.builder = [];
+    } catch (e) {
+      console.error(e);
+      state.ingredients = [...DEFAULT_INGREDIENTS];
+    }
+  } else {
+    state.ingredients = [...DEFAULT_INGREDIENTS];
+  }
+}
+
+// ============ UTILS ============
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function getIng(id) { return state.ingredients.find(i => i.id === id); }
+function todayStr() {
+  const d = new Date();
+  return d.toISOString().slice(0, 10);
+}
+function formatDate(s) {
+  const [y, m, d] = s.split('-');
+  const dt = new Date(+y, +m-1, +d);
+  return dt.toLocaleDateString('ro-RO', { weekday: 'long', day: 'numeric', month: 'long' });
+}
+
+// Calculate totals for a list of {ingId, qty}
+function calcTotals(items) {
+  let kcal = 0, prot = 0, carbs = 0, fat = 0, gl = 0, giWeightedTop = 0, carbsForGI = 0;
+  items.forEach(it => {
+    const ing = getIng(it.ingId);
+    if (!ing) return;
+    const f = it.qty / 100;
+    kcal += ing.kcal * f;
+    prot += ing.prot * f;
+    carbs += ing.carbs * f;
+    fat += ing.fat * f;
+    gl += ing.gl100 * f;
+    const c = ing.carbs * f;
+    if (c > 0) {
+      giWeightedTop += ing.gi * c;
+      carbsForGI += c;
+    }
+  });
+  const gi = carbsForGI > 0 ? giWeightedTop / carbsForGI : 0;
+  return { kcal, prot, carbs, fat, gl, gi };
+}
+
+function round(n, dec=1) {
+  return Math.round(n * Math.pow(10, dec)) / Math.pow(10, dec);
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ============ VIEWS ============
+function switchView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  document.querySelector(`.tab[data-view="${name}"]`).classList.add('active');
+  if (name === 'dashboard') renderDashboard();
+  if (name === 'journal') renderJournal();
+  if (name === 'builder') renderBuilder();
+  if (name === 'recipes') renderRecipes();
+  if (name === 'ingredients') renderIngredients();
+  if (name === 'settings') renderSettings();
+}
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => switchView(t.dataset.view)));
+
+// ============ DASHBOARD ============
+function renderDashboard() {
+  const today = todayStr();
+  document.getElementById('todayPill').textContent = formatDate(today);
+  const dayLog = state.log[today] || {};
+  const allItems = [
+    ...(dayLog.mic_dejun||[]),
+    ...(dayLog.pranz||[]),
+    ...(dayLog.cina||[]),
+    ...(dayLog.gustare||[])
+  ];
+  const t = calcTotals(allItems);
+
+  setStat('kcal', t.kcal, state.targets.kcal, 'kcal', 0);
+  setStat('prot', t.prot, state.targets.prot, 'g', 0);
+  setStat('carbs', t.carbs, state.targets.carbs, 'g', 0);
+  setStat('gl', t.gl, state.targets.gl, '', 1, true);
+
+  document.getElementById('d-fat').innerHTML = round(t.fat, 0) + '<span class="unit">g</span>';
+  document.getElementById('d-gi').textContent = round(t.gi, 0);
+  const giCat = t.gi === 0 ? '—' : t.gi <= 55 ? 'GI scăzut' : t.gi <= 69 ? 'GI mediu' : 'GI ridicat';
+  document.getElementById('d-gi-cat').textContent = giCat;
+
+  // Today meals breakdown
+  const mealEl = document.getElementById('todayMeals');
+  const meals = [
+    { key: 'mic_dejun', label: 'Mic Dejun' },
+    { key: 'pranz', label: 'Prânz' },
+    { key: 'cina', label: 'Cină' },
+    { key: 'gustare', label: 'Gustare' },
+  ];
+  const hasAny = meals.some(m => (dayLog[m.key]||[]).length > 0);
+  if (!hasAny) {
+    mealEl.innerHTML = '<div class="meal-empty">Niciun aliment înregistrat astăzi. Începe cu primul!</div>';
+    return;
+  }
+  mealEl.innerHTML = meals.filter(m => (dayLog[m.key]||[]).length > 0).map(m => {
+    const items = dayLog[m.key];
+    const mt = calcTotals(items);
+    return `<div class="meal-section">
+      <div class="meal-head">
+        <h3>${m.label}</h3>
+        <div class="meal-totals"><span>${round(mt.kcal,0)}</span> kcal · <span>${round(mt.prot,0)}</span>g prot · GL <span>${round(mt.gl,1)}</span></div>
+      </div>
+      <div class="meal-body">
+        ${items.map(it => {
+          const ing = getIng(it.ingId);
+          if (!ing) return '';
+          const ic = calcTotals([it]);
+          return `<div class="log-item">
+            <div class="log-name">${ing.name} <span class="qty">· ${it.qty}g</span></div>
+            <div class="log-nums"><span><b>${round(ic.kcal,0)}</b> kcal</span> <span><b>${round(ic.prot,1)}</b>g prot</span></div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setStat(key, val, target, unit, dec=0, lowerIsBetter=false) {
+  const v = round(val, dec);
+  const valStr = unit ? `${v}<span class="unit">${unit}</span>` : `${v}`;
+  document.getElementById('d-' + key).innerHTML = valStr;
+  document.getElementById('d-' + key + '-target').textContent = lowerIsBetter ? `target ≤ ${target}` : `/ ${target}${unit}`;
+  const pct = target > 0 ? Math.min(100, (val / target) * 100) : 0;
+  document.getElementById('d-' + key + '-bar').style.width = pct + '%';
+  const card = document.getElementById('card-' + key);
+  card.classList.remove('over', 'danger');
+  if (lowerIsBetter) {
+    if (val > target) card.classList.add('danger');
+  } else {
+    if (val > target * 1.1) card.classList.add('over');
+  }
+}
+
+// ============ JOURNAL ============
+let currentJournalDate = todayStr();
+
+function renderJournal() {
+  document.getElementById('journalDate').value = currentJournalDate;
+
+  const dayLog = state.log[currentJournalDate] || {};
+  const meals = [
+    { key: 'mic_dejun', label: 'Mic Dejun' },
+    { key: 'pranz', label: 'Prânz' },
+    { key: 'cina', label: 'Cină' },
+    { key: 'gustare', label: 'Gustare' },
+  ];
+
+  // Day totals across all meals
+  const allItems = meals.flatMap(m => dayLog[m.key] || []);
+  const dayTot = calcTotals(allItems);
+
+  const buildCell = (label, val, target, unit, dec, lowerIsBetter) => {
+    const v = round(val, dec);
+    const pct = target > 0 ? Math.min(100, (val / target) * 100) : 0;
+    let cls = '';
+    if (lowerIsBetter) {
+      if (val > target) cls = 'danger';
+    } else {
+      if (val > target * 1.1) cls = 'over';
+    }
+    const targetTxt = lowerIsBetter ? `target ≤ ${target}` : `/ ${target}${unit}`;
+    return `<div class="jt-cell ${cls}">
+      <div class="jt-label">${label}</div>
+      <div class="jt-value">${v}${unit ? `<span class="u">${unit}</span>` : ''}</div>
+      <div class="jt-target">${targetTxt}</div>
+      <div class="jt-bar"><div style="width:${pct}%"></div></div>
+    </div>`;
+  };
+
+  const totalsHTML = `<div class="journal-totals">
+    ${buildCell('Calorii', dayTot.kcal, state.targets.kcal, 'kcal', 0, false)}
+    ${buildCell('Proteine', dayTot.prot, state.targets.prot, 'g', 0, false)}
+    ${buildCell('GL total', dayTot.gl, state.targets.gl, '', 1, true)}
+  </div>`;
+
+  const mealsHTML = meals.map(m => {
+    const items = dayLog[m.key] || [];
+    const mt = calcTotals(items);
+    return `<div class="meal-section">
+      <div class="meal-head">
+        <h3>${m.label}</h3>
+        <div class="meal-totals"><span>${round(mt.kcal,0)}</span> kcal · <span>${round(mt.prot,0)}</span>g · GL <span>${round(mt.gl,1)}</span></div>
+      </div>
+      <div class="meal-body">
+        ${items.length === 0 ? '<div class="meal-empty">Nimic înregistrat</div>' :
+          items.map((it, i) => {
+            const ing = getIng(it.ingId);
+            if (!ing) return '';
+            const ic = calcTotals([it]);
+            return `<div class="log-item">
+              <div class="log-name">${ing.name} <span class="qty">· ${it.qty}g</span></div>
+              <div class="log-nums"><span><b>${round(ic.kcal,0)}</b> kcal</span> <span><b>${round(ic.prot,1)}</b>g</span> <span>GL <b>${round(ic.gl,1)}</b></span></div>
+              <button class="sel-remove" onclick="removeLogItem('${m.key}', ${i})">×</button>
+            </div>`;
+          }).join('')
+        }
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('journalContent').innerHTML = totalsHTML + mealsHTML;
+}
+
+document.getElementById('journalDate').addEventListener('change', e => {
+  currentJournalDate = e.target.value;
+  renderJournal();
+});
+
+function changeDate(delta) {
+  const d = new Date(currentJournalDate);
+  d.setDate(d.getDate() + delta);
+  currentJournalDate = d.toISOString().slice(0,10);
+  renderJournal();
+}
+
+function removeLogItem(mealKey, idx) {
+  if (!confirm('Ștergi acest aliment?')) return;
+  state.log[currentJournalDate][mealKey].splice(idx, 1);
+  save();
+  renderJournal();
+  toast('Șters');
+}
+
+// ============ LOG MODAL ============
+let pendingMealKey = null;
+
+function openLogModal(mealKey) {
+  pendingMealKey = mealKey;
+  const labels = { mic_dejun: 'Mic Dejun', pranz: 'Prânz', cina: 'Cină', gustare: 'Gustare' };
+  document.getElementById('logMealLabel').textContent = labels[mealKey] || mealKey;
+
+  // Populate recipe select
+  const rs = document.getElementById('logRecipeSelect');
+  rs.innerHTML = '<option value="">— sau adaugă aliment individual mai jos —</option>';
+  const sortByFav = (a, b) => {
+    if ((b.favorite ? 1 : 0) - (a.favorite ? 1 : 0) !== 0) return (b.favorite ? 1 : 0) - (a.favorite ? 1 : 0);
+    return a.name.localeCompare(b.name, 'ro');
+  };
+  state.recipes
+    .filter(r => !r.mealType || r.mealType === mealKey)
+    .sort(sortByFav)
+    .forEach(r => {
+      const opt = document.createElement('option');
+      opt.value = r.id;
+      const t = calcTotals(r.items);
+      opt.textContent = `${r.favorite ? '★ ' : ''}${r.name}  ·  ${round(t.kcal,0)} kcal`;
+      rs.appendChild(opt);
+    });
+  // also show all recipes after that
+  const allRest = state.recipes.filter(r => r.mealType && r.mealType !== mealKey).sort(sortByFav);
+  if (allRest.length > 0) {
+    const sep = document.createElement('option');
+    sep.disabled = true;
+    sep.textContent = '— alte rețete —';
+    rs.appendChild(sep);
+    allRest.forEach(r => {
+      const opt = document.createElement('option');
+      opt.value = r.id;
+      const t = calcTotals(r.items);
+      opt.textContent = `${r.favorite ? '★ ' : ''}${r.name}  ·  ${round(t.kcal,0)} kcal`;
+      rs.appendChild(opt);
+    });
+  }
+
+  // Populate ingredient select
+  const is = document.getElementById('logIngSelect');
+  is.innerHTML = '<option value="">Alege aliment...</option>';
+  state.ingredients.sort((a,b) => a.name.localeCompare(b.name, 'ro')).forEach(ing => {
+    const opt = document.createElement('option');
+    opt.value = ing.id;
+    opt.textContent = ing.name;
+    is.appendChild(opt);
+  });
+
+  document.getElementById('logIngQty').value = '';
+  document.getElementById('logModal').classList.add('show');
+}
+
+function closeLogModal() {
+  document.getElementById('logModal').classList.remove('show');
+  pendingMealKey = null;
+}
+
+function confirmLog() {
+  if (!pendingMealKey) return;
+  if (!state.log[currentJournalDate]) state.log[currentJournalDate] = {};
+  if (!state.log[currentJournalDate][pendingMealKey]) state.log[currentJournalDate][pendingMealKey] = [];
+
+  const recipeId = document.getElementById('logRecipeSelect').value;
+  const ingId = document.getElementById('logIngSelect').value;
+  const qty = parseFloat(document.getElementById('logIngQty').value);
+
+  if (recipeId) {
+    const r = state.recipes.find(x => x.id === recipeId);
+    if (r) {
+      r.items.forEach(it => {
+        state.log[currentJournalDate][pendingMealKey].push({ ingId: it.ingId, qty: it.qty });
+      });
+      save();
+      closeLogModal();
+      renderJournal();
+      toast('Rețetă adăugată');
+      return;
+    }
+  }
+  if (ingId && qty > 0) {
+    state.log[currentJournalDate][pendingMealKey].push({ ingId, qty });
+    save();
+    closeLogModal();
+    renderJournal();
+    toast('Aliment adăugat');
+    return;
+  }
+  toast('Alege o rețetă sau un aliment cu cantitate');
+}
+
+// ============ COPY DAY ============
+let copyMode = 'full'; // 'full' or 'meal'
+let copySelectedDate = null;
+
+function openCopyDayModal() {
+  const dates = Object.keys(state.log)
+    .filter(d => d !== currentJournalDate)
+    .filter(d => {
+      const day = state.log[d];
+      return day && Object.values(day).some(meals => meals && meals.length > 0);
+    })
+    .sort((a, b) => b.localeCompare(a)); // most recent first
+
+  document.getElementById('copyTargetDate').textContent = formatDate(currentJournalDate);
+  copySelectedDate = null;
+  copyMode = 'full';
+  document.getElementById('copyModeFull').classList.add('active');
+  document.getElementById('copyModeMeal').classList.remove('active');
+  document.getElementById('copyMealSelector').style.display = 'none';
+  document.getElementById('copyReplaceMode').checked = false;
+
+  const listEl = document.getElementById('copySourceList');
+  if (dates.length === 0) {
+    listEl.innerHTML = '<div class="meal-empty">Nu există alte zile cu mese înregistrate.</div>';
+  } else {
+    listEl.innerHTML = dates.map(d => {
+      const day = state.log[d];
+      const allItems = [
+        ...(day.mic_dejun||[]),
+        ...(day.pranz||[]),
+        ...(day.cina||[]),
+        ...(day.gustare||[])
+      ];
+      const totalMeals = ['mic_dejun','pranz','cina','gustare'].filter(k => (day[k]||[]).length > 0).length;
+      const t = calcTotals(allItems);
+      return `<div class="copy-day-item" data-date="${d}" onclick="selectCopyDate('${d}')">
+        <div>
+          <div class="copy-day-date">${formatDate(d)}</div>
+          <div class="copy-day-meta">${d} · ${totalMeals} mese, ${allItems.length} intrări</div>
+        </div>
+        <div class="copy-day-stats">${round(t.kcal,0)} kcal<br>${round(t.prot,0)}g prot</div>
+      </div>`;
+    }).join('');
+  }
+
+  document.getElementById('copyDayModal').classList.add('show');
+}
+
+function selectCopyDate(d) {
+  copySelectedDate = d;
+  document.querySelectorAll('.copy-day-item').forEach(el => {
+    el.classList.toggle('selected', el.dataset.date === d);
+  });
+}
+
+function setCopyMode(mode) {
+  copyMode = mode;
+  document.getElementById('copyModeFull').classList.toggle('active', mode === 'full');
+  document.getElementById('copyModeMeal').classList.toggle('active', mode === 'meal');
+  document.getElementById('copyMealSelector').style.display = mode === 'meal' ? 'block' : 'none';
+}
+
+function closeCopyDayModal() {
+  document.getElementById('copyDayModal').classList.remove('show');
+}
+
+function confirmCopyDay() {
+  if (!copySelectedDate) {
+    toast('Alege o zi sursă');
+    return;
+  }
+  const source = state.log[copySelectedDate];
+  if (!source) {
+    toast('Ziua sursă e goală');
+    return;
+  }
+
+  const replace = document.getElementById('copyReplaceMode').checked;
+  if (!state.log[currentJournalDate]) state.log[currentJournalDate] = {};
+  const target = state.log[currentJournalDate];
+
+  const mealKeys = copyMode === 'full'
+    ? ['mic_dejun', 'pranz', 'cina', 'gustare']
+    : [document.getElementById('copyMealType').value];
+
+  let copiedCount = 0;
+  mealKeys.forEach(k => {
+    const srcItems = (source[k] || []).map(it => ({ ingId: it.ingId, qty: it.qty }));
+    if (srcItems.length === 0) return;
+    if (replace || !target[k]) {
+      target[k] = srcItems;
+    } else {
+      target[k] = [...target[k], ...srcItems];
+    }
+    copiedCount += srcItems.length;
+  });
+
+  if (copiedCount === 0) {
+    toast('Nu există intrări de copiat pentru selecție');
+    return;
+  }
+
+  save();
+  closeCopyDayModal();
+  renderJournal();
+  toast(`${copiedCount} intrări copiate ✓`);
+}
+
+// ============ BUILDER ============
+function renderBuilder() {
+  renderBuilderIngList();
+  renderSelectedList();
+}
+
+function renderBuilderIngList(filter='') {
+  const list = document.getElementById('builderIngList');
+  const filtered = state.ingredients
+    .filter(i => i.name.toLowerCase().includes(filter.toLowerCase()) || i.cat.toLowerCase().includes(filter.toLowerCase()))
+    .sort((a,b) => a.name.localeCompare(b.name, 'ro'));
+
+  list.innerHTML = filtered.map(ing => `
+    <div class="ing-item" onclick="addToBuilder('${ing.id}')">
+      <div>
+        <div class="ing-name">${ing.name}</div>
+        <div class="ing-cat">${ing.cat}</div>
+      </div>
+      <div class="ing-meta">
+        <strong>${ing.kcal}</strong> kcal · ${ing.prot}g prot<br>
+        GI ${ing.gi} · GL/100g ${ing.gl100}
+      </div>
+    </div>
+  `).join('');
+}
+
+document.getElementById('builderSearch').addEventListener('input', e => renderBuilderIngList(e.target.value));
+
+function addToBuilder(ingId) {
+  const existing = state.builder.find(b => b.ingId === ingId);
+  if (existing) {
+    existing.qty += 50;
+  } else {
+    state.builder.push({ ingId, qty: 100 });
+  }
+  save();
+  renderSelectedList();
+}
+
+function renderSelectedList() {
+  const el = document.getElementById('selectedList');
+  if (state.builder.length === 0) {
+    el.innerHTML = '<div class="selected-empty">Apasă pe alimente din stânga ca să le adaugi</div>';
+  } else {
+    el.innerHTML = state.builder.map((it, i) => {
+      const ing = getIng(it.ingId);
+      if (!ing) return '';
+      const c = calcTotals([it]);
+      return `<div class="sel-item">
+        <div class="sel-head">
+          <div class="sel-name">${ing.name}</div>
+          <button class="sel-remove" onclick="removeFromBuilder(${i})">×</button>
+        </div>
+        <div class="sel-controls">
+          <input type="number" value="${it.qty}" min="0" step="5" onchange="updateBuilderQty(${i}, this.value)">
+          <span class="sel-unit">g</span>
+          <div class="sel-stats"><span>${round(c.kcal,0)}</span> kcal · <span>${round(c.prot,1)}</span>g</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  const t = calcTotals(state.builder);
+  document.getElementById('b-kcal').textContent = round(t.kcal, 0);
+  document.getElementById('b-prot').innerHTML = round(t.prot, 1) + '<span class="u">g</span>';
+  document.getElementById('b-carbs').innerHTML = round(t.carbs, 1) + '<span class="u">g</span>';
+  document.getElementById('b-gl').textContent = round(t.gl, 1);
+}
+
+function updateBuilderQty(idx, val) {
+  state.builder[idx].qty = parseFloat(val) || 0;
+  save();
+  renderSelectedList();
+}
+
+function removeFromBuilder(idx) {
+  state.builder.splice(idx, 1);
+  save();
+  renderSelectedList();
+}
+
+function clearBuilder() {
+  state.builder = [];
+  document.getElementById('recipeName').value = '';
+  save();
+  renderSelectedList();
+}
+
+function saveRecipe() {
+  const name = document.getElementById('recipeName').value.trim();
+  const mealType = document.getElementById('recipeMealType').value;
+  if (!name) { toast('Pune un nume rețetei'); return; }
+  if (state.builder.length === 0) { toast('Adaugă alimente în rețetă'); return; }
+  state.recipes.push({
+    id: uid(),
+    name,
+    mealType,
+    items: state.builder.map(i => ({ ingId: i.ingId, qty: i.qty })),
+    createdAt: Date.now()
+  });
+  save();
+  clearBuilder();
+  toast('Rețetă salvată ✓');
+}
+
+// ============ RECIPES ============
+let recipeFilter = 'all';
+
+function setRecipeFilter(f) {
+  recipeFilter = f;
+  document.querySelectorAll('#view-recipes .chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.filter === f);
+  });
+  renderRecipes();
+}
+
+function toggleFavorite(id) {
+  const r = state.recipes.find(x => x.id === id);
+  if (!r) return;
+  r.favorite = !r.favorite;
+  save();
+  renderRecipes();
+  toast(r.favorite ? 'Adăugat la favorite ★' : 'Scos de la favorite');
+}
+
+function renderRecipes() {
+  const grid = document.getElementById('recipesGrid');
+  let list = [...state.recipes];
+
+  if (recipeFilter === 'fav') {
+    list = list.filter(r => r.favorite);
+  } else if (recipeFilter !== 'all') {
+    list = list.filter(r => r.mealType === recipeFilter);
+  }
+
+  // Sort: favorites first, then by creation date desc
+  list.sort((a, b) => {
+    if ((b.favorite ? 1 : 0) - (a.favorite ? 1 : 0) !== 0) {
+      return (b.favorite ? 1 : 0) - (a.favorite ? 1 : 0);
+    }
+    return (b.createdAt || 0) - (a.createdAt || 0);
+  });
+
+  if (list.length === 0) {
+    const msg = recipeFilter === 'fav'
+      ? 'Nicio rețetă favorită. Marchează-le cu ★.'
+      : recipeFilter === 'all'
+        ? 'Nicio rețetă salvată încă. Du-te în Constructor.'
+        : 'Nicio rețetă în această categorie.';
+    grid.innerHTML = `<div class="meal-empty" style="grid-column: 1/-1;">${msg}</div>`;
+    return;
+  }
+
+  grid.innerHTML = list.map(r => {
+    const t = calcTotals(r.items);
+    const mealLabels = { mic_dejun: 'Mic Dejun', pranz: 'Prânz', cina: 'Cină', gustare: 'Gustare' };
+    return `<div class="recipe-card">
+      <div class="card-head">
+        <h3>${r.name}</h3>
+        <button class="fav-star ${r.favorite ? 'active' : ''}" onclick="toggleFavorite('${r.id}')" title="${r.favorite ? 'Scoate de la favorite' : 'Marchează favorită'}">${r.favorite ? '★' : '☆'}</button>
+      </div>
+      <div class="meta">${mealLabels[r.mealType] || ''} · ${r.items.length} ingrediente</div>
+      <div class="nums">
+        <div class="num"><span class="n">${round(t.kcal,0)}</span> kcal</div>
+        <div class="num"><span class="n">${round(t.prot,1)}</span>g prot</div>
+        <div class="num">GL <span class="n">${round(t.gl,1)}</span></div>
+      </div>
+      <div class="row gap-sm" style="margin-top:14px;">
+        <button class="btn small" onclick="loadToBuilder('${r.id}')">Editează</button>
+        <button class="btn ghost small danger" onclick="deleteRecipe('${r.id}')">Șterge</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function loadToBuilder(id) {
+  const r = state.recipes.find(x => x.id === id);
+  if (!r) return;
+  state.builder = r.items.map(i => ({ ingId: i.ingId, qty: i.qty }));
+  save();
+  document.getElementById('recipeName').value = r.name + ' (copie)';
+  document.getElementById('recipeMealType').value = r.mealType;
+  switchView('builder');
+}
+
+function deleteRecipe(id) {
+  if (!confirm('Ștergi rețeta?')) return;
+  state.recipes = state.recipes.filter(r => r.id !== id);
+  save();
+  renderRecipes();
+  toast('Rețetă ștearsă');
+}
+
+// ============ INGREDIENTS ============
+function renderIngredients(filter='') {
+  const f = filter.toLowerCase();
+  const rows = state.ingredients
+    .filter(i => i.name.toLowerCase().includes(f) || i.cat.toLowerCase().includes(f))
+    .sort((a,b) => a.cat.localeCompare(b.cat, 'ro') || a.name.localeCompare(b.name, 'ro'));
+  const tbody = document.getElementById('ingTable');
+  tbody.innerHTML = rows.map(i => `
+    <tr>
+      <td><strong>${i.name}</strong></td>
+      <td style="color:var(--ink-3); font-size:0.8125rem;">${i.cat}</td>
+      <td class="num">${i.kcal}</td>
+      <td class="num">${i.prot}</td>
+      <td class="num">${i.carbs}</td>
+      <td class="num">${i.fat}</td>
+      <td class="num">${i.gi}</td>
+      <td class="num">${i.gl100}</td>
+      <td class="actions"><button class="btn ghost small" onclick="deleteIng('${i.id}')">×</button></td>
+    </tr>
+  `).join('');
+}
+
+document.getElementById('ingSearch').addEventListener('input', e => renderIngredients(e.target.value));
+
+function openIngModal() {
+  document.querySelectorAll('#ingModal input').forEach(i => i.value = '');
+  document.getElementById('ingModal').classList.add('show');
+}
+function closeIngModal() {
+  document.getElementById('ingModal').classList.remove('show');
+}
+
+function saveNewIng() {
+  const name = document.getElementById('ni-name').value.trim();
+  if (!name) { toast('Pune un nume'); return; }
+  const newIng = {
+    id: uid(),
+    name,
+    cat: document.getElementById('ni-cat').value.trim() || 'Altele',
+    kcal: parseFloat(document.getElementById('ni-kcal').value) || 0,
+    prot: parseFloat(document.getElementById('ni-prot').value) || 0,
+    carbs: parseFloat(document.getElementById('ni-carbs').value) || 0,
+    fat: parseFloat(document.getElementById('ni-fat').value) || 0,
+    gi: parseFloat(document.getElementById('ni-gi').value) || 0,
+    gl100: parseFloat(document.getElementById('ni-gl').value) || 0,
+  };
+  // Auto-fill GL if not given
+  if (newIng.gl100 === 0 && newIng.gi > 0 && newIng.carbs > 0) {
+    newIng.gl100 = round((newIng.carbs * newIng.gi) / 100, 1);
+  }
+  state.ingredients.push(newIng);
+  save();
+  closeIngModal();
+  renderIngredients();
+  toast('Aliment adăugat ✓');
+}
+
+function deleteIng(id) {
+  if (!confirm('Ștergi acest aliment? (rețetele care îl folosesc nu vor afișa valori pentru el)')) return;
+  state.ingredients = state.ingredients.filter(i => i.id !== id);
+  save();
+  renderIngredients();
+}
+
+// ============ BARCODE SCANNER ============
+let html5QrCode = null;
+let lastScannedBarcode = null;
+
+function isCameraAvailable() {
+  // Camera requires HTTPS or localhost
+  return location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+}
+
+function openScannerModal() {
+  document.getElementById('scannerModal').classList.add('show');
+  document.getElementById('scannerResult').innerHTML = '';
+  document.getElementById('manualBarcode').value = '';
+  lastScannedBarcode = null;
+
+  if (!isCameraAvailable()) {
+    document.getElementById('scannerHttpsWarn').style.display = 'block';
+    document.getElementById('scannerHint').textContent = 'Camera indisponibilă (HTTPS necesar). Introdu codul manual mai jos.';
+    return;
+  }
+
+  document.getElementById('scannerHttpsWarn').style.display = 'none';
+  startScanner();
+}
+
+async function startScanner() {
+  const hint = document.getElementById('scannerHint');
+  hint.textContent = 'Inițializare cameră...';
+
+  try {
+    // Stop any existing instance
+    if (html5QrCode) {
+      try { await html5QrCode.stop(); } catch(e) {}
+      html5QrCode.clear();
+    }
+
+    html5QrCode = new Html5Qrcode("scannerView");
+    const config = {
+      fps: 10,
+      qrbox: { width: 280, height: 140 },
+      aspectRatio: 1.5,
+      formatsToSupport: [
+        Html5QrcodeSupportedFormats.EAN_13,
+        Html5QrcodeSupportedFormats.EAN_8,
+        Html5QrcodeSupportedFormats.UPC_A,
+        Html5QrcodeSupportedFormats.UPC_E,
+        Html5QrcodeSupportedFormats.CODE_128,
+        Html5QrcodeSupportedFormats.CODE_39
+      ]
+    };
+
+    await html5QrCode.start(
+      { facingMode: "environment" },
+      config,
+      (decodedText) => {
+        // Success callback
+        if (decodedText !== lastScannedBarcode) {
+          lastScannedBarcode = decodedText;
+          hint.textContent = `Cod detectat: ${decodedText}`;
+          lookupBarcode(decodedText);
+        }
+      },
+      () => {
+        // Per-frame error - ignore (no barcode found in this frame)
+      }
+    );
+
+    hint.textContent = 'Apropie codul de bare de cameră';
+  } catch (err) {
+    console.error(err);
+    hint.textContent = '✗ Nu pot accesa camera. Verifică permisiunile sau introdu codul manual.';
+    hint.classList.add('error');
+  }
+}
+
+async function stopScanner() {
+  if (html5QrCode) {
+    try {
+      if (html5QrCode.isScanning) await html5QrCode.stop();
+      html5QrCode.clear();
+    } catch (e) { console.error(e); }
+    html5QrCode = null;
+  }
+}
+
+async function closeScannerModal() {
+  await stopScanner();
+  document.getElementById('scannerModal').classList.remove('show');
+  lastScannedBarcode = null;
+}
+
+async function lookupBarcode(barcode) {
+  barcode = (barcode || '').trim();
+  if (!barcode) { toast('Introdu un cod de bare'); return; }
+  if (!/^\d{6,14}$/.test(barcode)) {
+    toast('Cod de bare invalid (trebuie să fie 6-14 cifre)');
+    return;
+  }
+
+  const resultEl = document.getElementById('scannerResult');
+  resultEl.innerHTML = `<div class="scanner-state">🔍 Caut produsul cu codul <strong>${barcode}</strong>...</div>`;
+
+  try {
+    const url = `https://world.openfoodfacts.org/api/v2/product/${barcode}.json?fields=product_name,brands,nutriments,categories_tags,quantity`;
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Network error');
+    const data = await response.json();
+
+    if (data.status !== 1 || !data.product) {
+      resultEl.innerHTML = `<div class="scanner-state error">
+        ✗ Produsul nu a fost găsit în baza de date Open Food Facts.<br>
+        <span style="color: var(--ink-3); font-size: 0.8125rem;">Poți să-l adaugi manual cu butonul "+ Aliment nou"</span>
+      </div>`;
+      return;
+    }
+
+    const p = data.product;
+    const n = p.nutriments || {};
+    const name = p.product_name || 'Produs fără nume';
+    const brand = p.brands || '';
+
+    // Extract nutrients per 100g
+    const kcal = n['energy-kcal_100g'] ?? n['energy-kcal'] ?? (n['energy_100g'] ? n['energy_100g'] / 4.184 : 0);
+    const prot = n['proteins_100g'] ?? n['proteins'] ?? 0;
+    const carbs = n['carbohydrates_100g'] ?? n['carbohydrates'] ?? 0;
+    const fat = n['fat_100g'] ?? n['fat'] ?? 0;
+    const sugars = n['sugars_100g'] ?? n['sugars'] ?? 0;
+
+    // Estimate GI based on category (Open Food Facts doesn't have GI directly)
+    let estGI = 50; // default mid
+    const cats = (p.categories_tags || []).join(' ');
+    if (/dairy|cheese|yogurt/i.test(cats)) estGI = 25;
+    else if (/vegetable|legume|salad/i.test(cats)) estGI = 20;
+    else if (/fruit/i.test(cats)) estGI = 40;
+    else if (/meat|fish|egg|protein/i.test(cats)) estGI = 0;
+    else if (/sugar|candy|chocolate|sweet/i.test(cats)) estGI = 65;
+    else if (/bread|cereal|pasta|rice/i.test(cats)) estGI = 60;
+    else if (/beverage|drink|water/i.test(cats)) estGI = 30;
+
+    // GL per 100g
+    const gl100 = round((carbs * estGI) / 100, 1);
+
+    resultEl.innerHTML = `<div class="scanner-result">
+      <h3>${name}</h3>
+      <div class="brand-line">${brand ? brand + ' · ' : ''}${barcode}</div>
+      <div class="nut-grid">
+        <div class="nut-cell"><div class="nut-lbl">Kcal</div><div class="nut-val">${round(kcal, 0)}</div></div>
+        <div class="nut-cell"><div class="nut-lbl">Prot</div><div class="nut-val">${round(prot, 1)}g</div></div>
+        <div class="nut-cell"><div class="nut-lbl">Carbi</div><div class="nut-val">${round(carbs, 1)}g</div></div>
+        <div class="nut-cell"><div class="nut-lbl">Grăs</div><div class="nut-val">${round(fat, 1)}g</div></div>
+      </div>
+      <div style="font-size: 0.75rem; color: var(--ink-3); margin-bottom: 12px; font-family: 'JetBrains Mono', monospace;">
+        Valori per 100g · GI estimat: ${estGI} · GL/100g estimat: ${gl100}
+      </div>
+      <div style="font-size: 0.75rem; color: var(--ink-3); margin-bottom: 12px; font-style: italic;">
+        GI/GL sunt estimate pe baza categoriei. Poți edita valorile după ce salvezi.
+      </div>
+      <div class="row gap-sm">
+        <button class="btn small" onclick='addScannedIngredient(${JSON.stringify({name, brand, kcal: round(kcal,1), prot: round(prot,1), carbs: round(carbs,1), fat: round(fat,1), gi: estGI, gl100, barcode}).replace(/'/g, "&apos;")})'>+ Adaugă în bază</button>
+        <button class="btn ghost small" onclick="document.getElementById('scannerResult').innerHTML = ''">Renunță</button>
+      </div>
+    </div>`;
+  } catch (err) {
+    console.error(err);
+    resultEl.innerHTML = `<div class="scanner-state error">
+      ✗ Eroare la conectarea cu serverul Open Food Facts.<br>
+      <span style="color: var(--ink-3); font-size: 0.8125rem;">Verifică conexiunea la internet.</span>
+    </div>`;
+  }
+}
+
+function addScannedIngredient(data) {
+  // Check if already exists
+  const existing = state.ingredients.find(i => i.barcode === data.barcode);
+  if (existing) {
+    toast('Acest produs există deja în baza ta');
+    return;
+  }
+
+  const fullName = data.brand ? `${data.name} (${data.brand})` : data.name;
+  state.ingredients.push({
+    id: uid(),
+    name: fullName,
+    cat: 'Scanat',
+    kcal: data.kcal,
+    prot: data.prot,
+    carbs: data.carbs,
+    fat: data.fat,
+    gi: data.gi,
+    gl100: data.gl100,
+    barcode: data.barcode
+  });
+  save();
+  toast('Adăugat în bază ✓');
+  document.getElementById('scannerResult').innerHTML = `<div class="scanner-state success">
+    ✓ Adăugat! Scanează alt produs sau închide.
+  </div>`;
+  // Reset for next scan
+  lastScannedBarcode = null;
+  renderIngredients();
+}
+
+// ============ EAT & TRACK IMPORT ============
+let pendingEatTrackImports = [];
+
+// Estimate GI based on Romanian food name keywords
+function estimateGI(name) {
+  const n = name.toLowerCase();
+  // Order matters - more specific first
+  if (/zahăr|zahar|bomboan|bounty|inghetata|înghețată|sirop|miere/.test(n)) return 65;
+  if (/paine|pâine|toast|bagel/.test(n)) {
+    if (/secar|graham|integral|protein/.test(n)) return 50;
+    return 70;
+  }
+  if (/paste|spaghet|tagliatell|farfall|fusilli|penne|rigatoni/.test(n)) {
+    if (/integral/.test(n)) return 45;
+    return 55;
+  }
+  if (/orez|rice/.test(n)) {
+    if (/brun|integral|salbatic/.test(n)) return 50;
+    return 70;
+  }
+  if (/cartof/.test(n)) return 70;
+  if (/mamalig|mămălig|porumb/.test(n)) {
+    if (/conserv/.test(n)) return 55;
+    return 65;
+  }
+  if (/wrap|tortilla|lipie/.test(n)) {
+    if (/protein|integral/.test(n)) return 40;
+    return 55;
+  }
+  if (/iaurt|yogurt/.test(n)) return 25;
+  if (/branz|brânz|feta|mozzarella|halloumi|cașcaval|parenica/.test(n)) return 0;
+  if (/lapte|milk/.test(n)) return 30;
+  if (/tofu|seitan/.test(n)) return 15;
+  if (/burger|șnițel|snitel|nuggets|chiftel/.test(n)) return 35;
+  if (/avocado/.test(n)) return 15;
+  if (/banane|banana/.test(n)) return 50;
+  if (/mar |măr |zmeur|afin|capsun|coacaz|fruct/.test(n)) return 40;
+  if (/morcovi|morcov/.test(n)) {
+    if (/fiert|gatit/.test(n)) return 39;
+    return 16;
+  }
+  if (/sfecla|sfeclă/.test(n)) return 64;
+  if (/varza|varză|spanac|salata|salată|broccoli|brocoli|conopid|castravet|ridich|ardei|rosii|roșii|ceap|ciuperc/.test(n)) return 15;
+  if (/fasole|naut|năut|lint|mazăre|mazare/.test(n)) return 30;
+  if (/măslin|maslin|gogo[șs]ari|murat|conserv/.test(n)) return 15;
+  if (/ulei|uleiu/.test(n)) return 0;
+  if (/sos|otet|oțet/.test(n)) {
+    if (/balsamic/.test(n)) return 20;
+    return 10;
+  }
+  if (/protein drink|shake.*protein|whey|protein bar/.test(n)) return 25;
+  if (/cafea|ceai|apă|apa|fanta|cola|suc/.test(n)) {
+    if (/zero|fără zahăr|fara zahar|no sugar/.test(n)) return 0;
+    return 60;
+  }
+  if (/coco|coconut/.test(n)) return 45;
+  return 40; // default mid
+}
+
+function estimateCategory(name) {
+  const n = name.toLowerCase();
+  if (/iaurt|branz|brânz|feta|mozzarella|halloumi|lapte/.test(n)) return 'Lactate';
+  if (/tofu|seitan|burger|șnițel|snitel|nuggets|verdino|plant-based|vegan/.test(n)) return 'Vegan procesate';
+  if (/avocado|banane|mar |măr |zmeur|afin|capsun|coacaz|fruct/.test(n)) return 'Fructe';
+  if (/morcovi|sfecla|sfeclă|varza|varză|spanac|salata|salată|broccoli|brocoli|conopid|castravet|ridich|ardei|rosii|roșii|ceap|ciuperc|cartof|vinete|fasole.*pastai/.test(n)) return 'Legume';
+  if (/paste|spaghet|tagliatell|farfall|fusilli|paine|pâine|toast|wrap|tortilla|mamalig|orez|cartof|paine/.test(n)) return 'Cereale';
+  if (/fasole|naut|năut|lint|mazăre|mazare/.test(n)) return 'Conserve';
+  if (/măslin|maslin|gogo[șs]ari|murat|conserv|porumb/.test(n)) return 'Conserve';
+  if (/ulei|uleiu/.test(n)) return 'Grăsimi';
+  if (/sos|otet|oțet|busuioc|condiment/.test(n)) return 'Condimente';
+  if (/protein drink|shake.*protein|whey|protein bar|herbalife/.test(n)) return 'Suplimente';
+  if (/cafea|ceai|apă|apa|fanta|cola|suc/.test(n)) return 'Băuturi';
+  if (/somon|peste|pește|ton|pui|vita|porc/.test(n)) return 'Pește/Carne';
+  if (/bounty|inghetata|înghețată|bomboan/.test(n)) return 'Dulciuri';
+  return 'Din Eat & Track';
+}
+
+// Extract grams from "Portie" string
+function extractGrams(portie) {
+  const s = String(portie || '').trim();
+  // "1 Bucata (100g)", "2 Portii (56g)"
+  let m = s.match(/\((\d+(?:[.,]\d+)?)\s*g\)/i);
+  if (m) return parseFloat(m[1].replace(',', '.'));
+  // "100 Grame"
+  m = s.match(/^(\d+(?:[.,]\d+)?)\s*grame?/i);
+  if (m) return parseFloat(m[1].replace(',', '.'));
+  // "100 Mililitri" - treat as grams approx (water density)
+  m = s.match(/^(\d+(?:[.,]\d+)?)\s*mililitri/i);
+  if (m) return parseFloat(m[1].replace(',', '.'));
+  // "1 Lingurita (5ml)", "1 Lingura (15ml)"
+  m = s.match(/\((\d+(?:[.,]\d+)?)\s*ml\)/i);
+  if (m) {
+    const ml = parseFloat(m[1].replace(',', '.'));
+    // If name suggests oil, density ~0.92, else ~1.0
+    return ml; // we'll adjust per-food if needed; close enough
+  }
+  return null;
+}
+
+async function handleEatTrackImport(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  // Reset file input so same file can be re-selected
+  event.target.value = '';
+
+  document.getElementById('eatTrackModal').classList.add('show');
+  document.getElementById('eatTrackSub').textContent = 'Citesc fișierul...';
+  document.getElementById('eatTrackStats').style.display = 'none';
+  document.getElementById('eatTrackPreview').style.display = 'none';
+  document.getElementById('eatTrackError').style.display = 'none';
+  document.getElementById('etImportBtn').style.display = 'none';
+
+  try {
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type: 'array' });
+
+    if (!wb.SheetNames.includes('Jurnal')) {
+      throw new Error('Fișierul nu pare să fie un export Eat & Track (lipsește sheet-ul "Jurnal").');
+    }
+
+    const sheet = wb.Sheets['Jurnal'];
+    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
+
+    // Process rows: detect food entries
+    const foodEntries = [];
+    for (const row of rows) {
+      if (!row || row.length < 6) continue;
+      const [aliment, portie, prot, carbi, gras, kcal] = row;
+      if (!aliment || !portie) continue;
+      const portieStr = String(portie).trim();
+      // Skip header rows and totals
+      if (aliment === 'Aliment') continue;
+      if (portieStr === 'Total:' || portieStr === 'Total zi:') continue;
+      if (kcal === null || kcal === undefined || kcal === '') continue;
+      // Must have numeric values
+      const kcalN = parseFloat(String(kcal).replace(',', '.'));
+      if (isNaN(kcalN)) continue;
+
+      const grams = extractGrams(portie);
+      if (!grams || grams <= 0) {
+        // Skip entries we can't normalize
+        continue;
+      }
+
+      foodEntries.push({
+        name: String(aliment).trim(),
+        portie: portieStr,
+        grams,
+        prot: parseFloat(String(prot).replace(',', '.')) || 0,
+        carbs: parseFloat(String(carbi).replace(',', '.')) || 0,
+        fat: parseFloat(String(gras).replace(',', '.')) || 0,
+        kcal: kcalN
+      });
+    }
+
+    if (foodEntries.length === 0) {
+      throw new Error('Nu am găsit alimente în fișier. Verifică dacă structura e cea așteptată.');
+    }
+
+    // Deduplicate by name, averaging values per 100g for consistency
+    const grouped = {};
+    for (const e of foodEntries) {
+      const key = e.name;
+      const per100 = {
+        kcal: (e.kcal / e.grams) * 100,
+        prot: (e.prot / e.grams) * 100,
+        carbs: (e.carbs / e.grams) * 100,
+        fat: (e.fat / e.grams) * 100
+      };
+      if (!grouped[key]) {
+        grouped[key] = { name: key, occurrences: 0, sumKcal: 0, sumProt: 0, sumCarbs: 0, sumFat: 0 };
+      }
+      grouped[key].occurrences++;
+      grouped[key].sumKcal += per100.kcal;
+      grouped[key].sumProt += per100.prot;
+      grouped[key].sumCarbs += per100.carbs;
+      grouped[key].sumFat += per100.fat;
+    }
+
+    // Build final list with averaged values per 100g
+    pendingEatTrackImports = Object.values(grouped).map(g => {
+      const kcal = g.sumKcal / g.occurrences;
+      const prot = g.sumProt / g.occurrences;
+      const carbs = g.sumCarbs / g.occurrences;
+      const fat = g.sumFat / g.occurrences;
+      const gi = estimateGI(g.name);
+      const gl100 = round((carbs * gi) / 100, 1);
+
+      // Check if already exists by name (case-insensitive)
+      const existing = state.ingredients.find(i =>
+        i.name.toLowerCase().trim() === g.name.toLowerCase().trim()
+      );
+
+      return {
+        name: g.name,
+        cat: estimateCategory(g.name),
+        kcal: round(kcal, 1),
+        prot: round(prot, 1),
+        carbs: round(carbs, 1),
+        fat: round(fat, 1),
+        gi,
+        gl100,
+        occurrences: g.occurrences,
+        alreadyExists: !!existing,
+        selected: !existing
+      };
+    }).sort((a, b) => {
+      // existing first (grayed), then by occurrences desc
+      if (a.alreadyExists !== b.alreadyExists) return a.alreadyExists ? 1 : -1;
+      return b.occurrences - a.occurrences;
+    });
+
+    const newCount = pendingEatTrackImports.filter(p => !p.alreadyExists).length;
+    const existingCount = pendingEatTrackImports.filter(p => p.alreadyExists).length;
+
+    document.getElementById('eatTrackSub').textContent =
+      `Am găsit ${pendingEatTrackImports.length} alimente unice în ${foodEntries.length} intrări din jurnal. Bifează ce vrei să imporți.`;
+    document.getElementById('etCountUnique').textContent = pendingEatTrackImports.length;
+    document.getElementById('etCountExisting').textContent = existingCount;
+    document.getElementById('etCountNew').textContent = newCount;
+    document.getElementById('eatTrackStats').style.display = 'block';
+
+    renderEatTrackPreview();
+    document.getElementById('eatTrackPreview').style.display = 'block';
+    document.getElementById('etImportBtn').style.display = 'inline-flex';
+    updateImportButton();
+
+  } catch (err) {
+    console.error(err);
+    document.getElementById('eatTrackError').style.display = 'block';
+    document.getElementById('eatTrackError').textContent = 'Eroare: ' + err.message;
+    document.getElementById('eatTrackSub').textContent = 'Procesare eșuată';
+  }
+}
+
+function renderEatTrackPreview() {
+  const el = document.getElementById('eatTrackPreview');
+  el.innerHTML = `<div style="padding:10px 14px; background:var(--surface-2); border-bottom:1px solid var(--border); display:flex; gap:12px; align-items:center; font-size:0.75rem; color:var(--ink-3); position:sticky; top:0; z-index:1;">
+    <label style="display:flex; align-items:center; gap:6px; cursor:pointer; text-transform:none; letter-spacing:normal; margin:0;">
+      <input type="checkbox" id="etSelectAll" onchange="toggleAllEatTrack(this.checked)" style="width:auto;">
+      <span style="color:var(--ink-2); font-weight:600;">Selectează toate (noi)</span>
+    </label>
+  </div>` + pendingEatTrackImports.map((item, idx) => `
+    <div style="padding:10px 14px; border-bottom:1px solid var(--border-soft); display:flex; gap:12px; align-items:center; ${item.alreadyExists ? 'opacity:0.5;' : ''}">
+      <input type="checkbox" ${item.selected ? 'checked' : ''} ${item.alreadyExists ? 'disabled' : ''} onchange="toggleEatTrackItem(${idx}, this.checked)" style="width:auto; flex-shrink:0;">
+      <div style="flex:1; min-width:0;">
+        <div style="font-weight:500; font-size:0.875rem; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <span>${item.name}</span>
+          ${item.alreadyExists ? '<span style="background:var(--surface-2); color:var(--ink-3); font-size:0.6875rem; padding:2px 8px; border-radius:100px;">deja în bază</span>' : ''}
+          ${item.occurrences > 1 ? `<span style="background:var(--bg-2); color:var(--ink-3); font-size:0.6875rem; padding:2px 8px; border-radius:100px; font-family:'JetBrains Mono', monospace;">×${item.occurrences}</span>` : ''}
+        </div>
+        <div style="font-family:'JetBrains Mono', monospace; font-size:0.6875rem; color:var(--ink-3); margin-top:3px;">
+          ${item.cat} · ${item.kcal} kcal · ${item.prot}g prot · ${item.carbs}g carbi · ${item.fat}g grăs · GI~${item.gi}
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleAllEatTrack(checked) {
+  pendingEatTrackImports.forEach(item => {
+    if (!item.alreadyExists) item.selected = checked;
+  });
+  renderEatTrackPreview();
+  // Re-set the checkbox (since renderEatTrackPreview rebuilt it)
+  setTimeout(() => {
+    const sa = document.getElementById('etSelectAll');
+    if (sa) sa.checked = checked;
+  }, 0);
+  updateImportButton();
+}
+
+function toggleEatTrackItem(idx, checked) {
+  if (pendingEatTrackImports[idx]) {
+    pendingEatTrackImports[idx].selected = checked;
+    updateImportButton();
+  }
+}
+
+function updateImportButton() {
+  const count = pendingEatTrackImports.filter(i => i.selected && !i.alreadyExists).length;
+  const btn = document.getElementById('etImportBtn');
+  if (count === 0) {
+    btn.textContent = 'Selectează cel puțin un aliment';
+    btn.disabled = true;
+    btn.style.opacity = '0.5';
+  } else {
+    btn.textContent = `Importă ${count} aliment${count > 1 ? 'e' : ''}`;
+    btn.disabled = false;
+    btn.style.opacity = '1';
+  }
+}
+
+function confirmEatTrackImport() {
+  const toImport = pendingEatTrackImports.filter(i => i.selected && !i.alreadyExists);
+  if (toImport.length === 0) {
+    toast('Nu ai selectat nimic');
+    return;
+  }
+  toImport.forEach(item => {
+    state.ingredients.push({
+      id: uid(),
+      name: item.name,
+      cat: item.cat,
+      kcal: item.kcal,
+      prot: item.prot,
+      carbs: item.carbs,
+      fat: item.fat,
+      gi: item.gi,
+      gl100: item.gl100,
+      source: 'eat_track'
+    });
+  });
+  save();
+  closeEatTrackModal();
+  renderIngredients();
+  toast(`${toImport.length} alimente importate ✓`);
+}
+
+function closeEatTrackModal() {
+  document.getElementById('eatTrackModal').classList.remove('show');
+  pendingEatTrackImports = [];
+}
+
+// ============ SETTINGS ============
+function renderSettings() {
+  document.getElementById('tgt-kcal').value = state.targets.kcal;
+  document.getElementById('tgt-prot').value = state.targets.prot;
+  document.getElementById('tgt-carbs').value = state.targets.carbs;
+  document.getElementById('tgt-gl').value = state.targets.gl;
+}
+
+function saveTargets() {
+  state.targets = {
+    kcal: parseFloat(document.getElementById('tgt-kcal').value) || 0,
+    prot: parseFloat(document.getElementById('tgt-prot').value) || 0,
+    carbs: parseFloat(document.getElementById('tgt-carbs').value) || 0,
+    gl: parseFloat(document.getElementById('tgt-gl').value) || 0,
+  };
+  save();
+  toast('Obiective salvate ✓');
+}
+
+function exportData() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `nutriment-backup-${todayStr()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData(ev) {
+  const file = ev.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.ingredients || !data.targets) throw new Error('format');
+      if (!confirm('Importul va înlocui toate datele actuale. Continui?')) return;
+      state = data;
+      save();
+      switchView('dashboard');
+      toast('Import reușit ✓');
+    } catch (e) {
+      toast('Fișier invalid');
+    }
+  };
+  reader.readAsText(file);
+}
+
+function resetAll() {
+  if (!confirm('Sigur ștergi TOT (alimente, rețete, jurnal, obiective)?')) return;
+  if (!confirm('Confirmă încă o dată — această acțiune e ireversibilă.')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  state = {
+    ingredients: [...DEFAULT_INGREDIENTS],
+    recipes: [],
+    log: {},
+    targets: { ...DEFAULT_TARGETS },
+    builder: []
+  };
+  save();
+  switchView('dashboard');
+  toast('Resetat la valori inițiale');
+}
+
+// ============ INIT ============
+load();
+currentJournalDate = todayStr();
+renderDashboard();
+</script>
+</body>
+</html>
